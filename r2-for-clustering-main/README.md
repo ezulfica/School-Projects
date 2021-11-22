@@ -45,8 +45,10 @@ df_hclust = hclust(d = dist(x = df) , method = "ward.D2" )
 plot(df_hclust)
 rect.hclust(tree = df_hclust, k= 3, border = "red")
 ```
+
+
 <center>
-<img src="https://raw.githubusercontent.com/ezulfica/r2-for-clustering/main/hclustdend.png" style="display: block; margin: auto;" />
+<img src="https://raw.githubusercontent.com/ezulfica/School-Projects/main/r2-for-clustering-main/hclustdend.png" style="display: block; margin: auto;" />
 </center>
 That’s how our observations will be distributed.
 
@@ -100,5 +102,5 @@ print(hclust_r2(data = df, col = 1:13, kmin = 1,kmax = 15))
 plot(hclust_r2(data = df, col = 1:13, kmin = 1,kmax = 15), type = "b", ylab = "R2", xlab = "number of cluster")
 ```
 <center>
-<img src="https://raw.githubusercontent.com/ezulfica/r2-for-clustering/main/rsquare.png" style="display: block; margin: auto;" />
+<img src="https://raw.githubusercontent.com/ezulfica/School-Projects/main/r2-for-clustering-main/rsquare.png" style="display: block; margin: auto;" />
 </center>
