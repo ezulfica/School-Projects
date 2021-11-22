@@ -10,7 +10,61 @@ The main goal was to classify every cities and create cluster with
 k-means and hierarchical clustering algorithms. To help us with deciding
 how many clusters are optimal, we used *R*<sup>2</sup> criteria which is :
 
-<img src="http://latex.codecogs.com/png.latex?\dpi{110}&space;R^2&space;=&space;\frac{BSS}{TSS}" title="http://latex.codecogs.com/png.latex?\dpi{110} R^2 = \frac{BSS}{TSS}" />
+<html>
+<head>
+<title>LaTeX4Web 1.4 OUTPUT</title>
+<style type="text/css">
+<!--
+ body {color: black;  background-color:#FFCC99;  }
+ div.p { margin-top: 7pt;}
+ td div.comp { margin-top: -0.6ex; margin-bottom: -1ex;}
+ td div.comb { margin-top: -0.6ex; margin-bottom: -.6ex;}
+ td div.norm {line-height:normal;}
+ td div.hrcomp { line-height: 0.9; margin-top: -0.8ex; margin-bottom: -1ex;}
+ td.sqrt {border-top:2 solid black;
+          border-left:2 solid black;
+          border-bottom:none;
+          border-right:none;}
+ table.sqrt {border-top:2 solid black;
+             border-left:2 solid black;
+             border-bottom:none;
+             border-right:none;}
+-->
+</style>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-latin-1"/>
+</head>
+<body>
+
+<table cellspacing=0  border=0 align=center>
+<tr>
+  <td nowrap align=center>
+     R<sup>2</sup> = 
+  </td>
+  <td nowrap align="center">
+    <table cellspacing=0 border=0 >
+    <tr>
+      <td nowrap align="center">
+        BSS
+      </td>
+    </tr>
+    </table>
+    <div class=hrcomp><hr noshade size=1></div>
+    <table cellspacing=0 border=0 >
+    <tr>
+      <td nowrap align=center>
+        TSS
+      </td>
+    </tr>
+    </table>
+  </td>
+  <td nowrap align=center>
+     
+  </td>
+</tr>
+</table>
+</body>
+</html>
+
 
 where BSS defines the between sum square and TSS the total sum square.
 
