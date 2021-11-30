@@ -1,0 +1,423 @@
+---
+title: "TP1 - Statistiques non paramétriques"
+author: "ALexandre BARTHE -- Loik-Johan ACAKPO-ADDRA -- Eric ZULFICAR"
+date: "28/10/2021"
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+---
+
+```{r prérequis, include = F}
+packages = c("dplyr", "data.table", "ggplot2", "cowplot", "ggthemes")
+x = sapply(X = packages, FUN = library, character.only = T)
+rm(packages)
+options(scipen = 999, digits = 7)
+```
+
+
+# Partie 1
+
+Illustrez le choix de K et de h pour les estimateurs à noyau dans les cas suivant $X_1 , ... , X_n$ i.i.d $\sim \frac{1}{2}(f_1(x)+f_2(x))$
+
+\[ \text{modèle 1 : } f_1 \sim \mathcal{N}(2,1) \quad f_2 \sim \mathcal{N}(-1,0.5)\]
+\[ \text{modèle 2 : } f_1 \sim \mathcal{U}([0,1 ]) \quad f_2 \sim \mathcal{N}(-1,0.5)\]
+\[ \text{modèle 3 : } f_1 \sim \Gamma(2,4) \quad f_2 \sim \Gamma(2,1)  \]
+
+<center>---------------------------------------------------------------------</center>
+
+```{r, include = F}
+n = 100000 #Taille echantillons
+
+
+#Insertion des f1 et f2 dans une liste de vecteurs X
+Xi = list(
+  modele1 = list(
+    Y1 = rnorm(n,2,1), 
+    Y2 = rnorm(n,-1,sqrt(0.5)), 
+    density = function(x) (1/2)*dnorm(x, 2,1) + (1/2)*dnorm(x,-1,sqrt(0.5))
+  ), 
+  modele2 = list(
+    Y1 = runif(n,0,1), 
+    Y2 = rnorm(n,-1, sqrt(0.5)),
+    density = function(x) (1/2)*dunif(x, 0,1) + (1/2)*dnorm(x,-1,sqrt(0.5))
+  ),
+  modele3 = list(
+    Y1 = rgamma(n = n, shape = 2, scale = 4), 
+    Y2 = rgamma(n,2,1),
+    density = function(x) (1/2)*dgamma(x, shape = 2, rate = 4) + (1/2)*dgamma(x, shape = 2, rate = 1)
+  )
+)
+
+Y = rbinom(n = n, size = 1,prob = 1/2)
+
+#Generateur des modeles
+modele_gen = function(modele, Y) {
+  df = as.data.frame((Y ==0)* modele[["Y1"]] + (Y ==1)* modele[["Y2"]])
+  colnames(df) = "X"
+  return(df)
+}
+#Dataframe contenant les 3 modèles
+modeles = lapply(X = Xi, FUN = modele_gen, Y = Y)
+rm(Y)
+```
+
+### Modèle 1 
+
+```{r, fig.height=6, fig.width=12, echo = F}
+
+bw_ucv = round(density(x = modeles$modele1$X, bw = "ucv")$bw,3)
+
+ggplot(data = modeles$modele1) + #On donne l'argument data a ggplot pour lui dire qu'on va travailler avec ce dataframe
+  aes(x = X, y = ..density..) + #On fait l'histogramme de la colonne X et on y on veut les frequences (ici ..density..)
+  geom_histogram(bins = 25, alpha = 0.1, fill = "#b6c90c", color = "black") + #on choisit les parametres de l'histogramme
+  geom_function(aes(colour = "densité f"), fun = Xi[[1]]$density , inherit.aes = F, size = 0.8) + #equivalement du curve
+  geom_density(aes(colour = paste("(ucv) bw = ", bw_ucv)), bw = "ucv", size = 0.8, linetype = "dashed") +#equivalent de la fonction density, mais trace uniquement la courbe
+  geom_density(aes(colour = paste("(ucv) bw = ", bw_ucv, ", kernel = e")), linetype = "dotted", bw = "ucv", size = 0.8, kernel = 'e') +
+  geom_density(aes(colour = "bw = 0.5"), bw = 0.5, size = 0.8, linetype = "dotdash") + #equivalent de la fonction density, mais trace uniquement la courbe
+  geom_density(aes(colour = "bw = 0.79"), bw = 0.79, size = 0.8, linetype = "longdash") +
+  geom_density(aes(colour = paste("(nrd0) bw =", round(bw.nrd0(modeles$modele1$X),3))), size = 0.8, linetype = "twodash") + 
+  theme_hc(base_size = 10) + #choix du theme, base_size = taille de la police des axes
+  theme(legend.position = "right", legend.title = element_blank()) #place la legend en bas, enleve le titre de la legende
+```
+
+On trace l'histogramme et la densité du modèle 1 représentée en violet. Puis on trace les estimateurs à noyaux avec une fenêtre bw égale à $0.5$ en bleu, celle de validation croisée en vert (noyau Epanechnikov) et marron (noyau Gaussien) et une dernière selon le critère nrd0 en rouge. On remarque visuellement peu de différence entre la fênetre ucv et nrd0. De même en changeant le noyau
+
+On a : $$h_{nrd0} = \frac{0.9(q3 - q1)\sigma_X}{1.34{n^-5}}$$
+où : $\sigma_X$ = écart type de l'échantillon $X$, $q3$ et $q1$ les quantiles, $n$ la taille de X.
+
+Autre point, lorsque h commence à croitre, on remarque que l'estimateur à noyaux s'aplati. 
+
+### Modèle 2
+
+```{r, fig.height=6, fig.width=12, warning=F, echo = F}
+
+bw_ucv = round(density(x = modeles$modele2$X, bw = "ucv")$bw,3)
+
+ggplot(data = modeles$modele2) + 
+  aes(x = X, y = ..density..) + 
+  geom_histogram(bins = 25, alpha = 0.1, fill = "#b6c90c", color = "black") +
+  geom_function(aes(colour = "densité f"), fun = Xi[[2]]$density , inherit.aes = F, size = 0.8) + #equivalement du curve
+  geom_density(aes(colour = paste("(ucv) bw = ", bw_ucv)), bw = "ucv", size = 0.8) + #equivalent de la fonction density, mais trace uniquement la courbe
+  geom_density(aes(colour = "bw = 0.5"), bw = 0.5, size = 0.8, linetype = "dashed") + #equivalent de la fonction density, mais trace uniquement la courbe
+  geom_density(aes(colour = paste("(nrd0) bw =", round(bw.nrd0(modeles$modele1$X),3))), size = 0.8, linetype = "dotdash") + 
+  geom_density(aes(colour = "bw = 0.79"), bw = 0.79, size = 0.8, linetype = "longdash") +
+  theme_hc(base_size = 10) + 
+  theme(legend.position = "left", legend.title = element_blank())
+```
+
+En conservant le noyau gaussien dans ce cas, on répète l'opération pour le modèle 2. 
+
+Sur celui-ci, on remarque quelques différences entre la fenêtre ucv et nrd0. La fênetre nrd0 est beaucoup plus lisse, mais semble être plus propice à conserver une erreur. 
+
+Si l'on regarde au voisinage de 0 ou de 1, on peut voir que la densité monte et descend brusquement. Là où l'estimateur à noyaux obtenu avec validation croisé arrive à suivre la densité, l'estimateur à nrd0 n'y parvient pas. 
+
+### Modèle 3
+
+```{r, echo=F, fig.height=6, fig.width=12, warning=FALSE}
+
+bw_ucv = round(density(x = modeles$modele3$X, bw = "ucv")$bw,3)
+
+ggplot(data = modeles$modele3) + 
+  aes(x = X, y = ..density..) + 
+  geom_histogram(bins = 25, alpha = 0.1, fill = "#b6c90c", color = "black") +
+  geom_function(aes(colour = "densité f"), fun = Xi[[3]]$density , inherit.aes = F, size = 0.8) + #equivalement du curve
+  geom_density(aes(colour = paste("(ucv) bw = ", bw_ucv)), bw = "ucv", size = 0.8, ) + #equivalent de la fonction density, mais trace uniquement la courbe
+  geom_density(aes(colour = "bw = 0.5"), bw = 0.5, size = 0.8) + #equivalent de la fonction density, mais trace uniquement la courbe
+  geom_density(aes(colour = paste("(nrd0) bw =", round(bw.nrd0(modeles$modele1$X),3))), size = 0.8) + 
+  #geom_density(aes(colour = "bw = 1"),bw = 1, size = 0.8 ) + 
+  theme_hc(base_size = 10) + xlim(0,15) + 
+  theme(legend.position = "right", legend.title = element_blank())
+```
+
+Pour le modèle 3, nous avons réduit la fenêtre de visualisation entre 0 et 15. Ici l'unique différence entre les trois fenêtres est au voisinage de X = 1. Ce qui est surprenant, ce sont les échantillons suite à la simulation. 
+
+La densité f, vaut près des 0.8 contre 0.2 pour les estimateurs. Ensuite, les estimateurs s'entremêlent 
+
+Pour le troisième modèle, il faudrait trouver une fenêtre qui permettra à $\hat{f}_{n,h}$ d'être plus grande au voisinage de 0. 
+
+# Partie 2
+
+Pour le modèle 3 (ou un autre) [on note $f_{n,h}$ estimateur à noyau gaussien dans le graphique $MISE(\hat{f}_{n,h})$ sur l'intervalle $[\min(X_i),\max(X_i)]$]. Déterminer le minimum que l'on note $h^x$ comparer avec le $\hat{h}$ par validation croisée.
+
+<center>---------------------------------------------------------------------</center>
+
+```{r include=FALSE}
+#Monte-Carlo
+n_size_model = function(n){
+  Xi = list(
+    # modele1 = list(
+    #   Y1 = rnorm(n,2,1), 
+    #   Y2 = rnorm(n,-1,sqrt(0.5)), 
+    #   density = function(x) (1/2)*dnorm(x, 2,1) + (1/2)*dnorm(x,-1,sqrt(0.5))
+    # ), 
+    # modele2 = list(
+    #   Y1 = runif(n,0,1), 
+    #   Y2 = rnorm(n,-1, sqrt(0.5)),
+    #   density = function(x) (1/2)*dunif(x, 0,1) + (1/2)*dnorm(x,-1,sqrt(0.5))
+    # ),
+    # modele3 = list(
+      Y1 = rgamma(n = n, shape = 2, scale = 4), 
+      Y2 = rgamma(n,2,1),
+      density = function(x) (1/2)*dgamma(x, shape = 2, rate = 4) + (1/2)*dgamma(x, shape = 2, rate = 1)
+    )
+  return(Xi)
+}
+
+n = 10000
+N = 1000
+
+#Generateur des modeles N fois (matrice de N modeles 1, 2 et 3)
+modele_gen2 = function(modele, Y, n , N) {
+  mod = (Y ==0)* modele[["Y1"]] + (Y ==1)* modele[["Y2"]]
+  return(matrix(mod, nrow = n, ncol = N))
+}
+
+#creation d'une fonction permettant de generer un n-echantillon du modèle3 N fois
+modeles3 = modele_gen2(modele = n_size_model(n*N), Y = rbinom(n*N, 1, 1/2), n, N)
+
+
+```
+
+Dans un chunk caché, nous faisons $N=1000$ simulations de $n = 10000$ échantillons. 
+
+Ensuite, pour chaque simulation nous calculons, à l'aide de la fonctions suivante, l'ISE en fonction de h et du modèle.   
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+density_f1 = function(x)(1/2)*dnorm(x, 2,1) + (1/2)*dnorm(x,-1,sqrt(0.5))
+density_f2 = function(x)(1/2)*dunif(x, 0,1) + (1/2)*dnorm(x,-1,sqrt(0.5))
+density_f3 = function(x)(1/2)*dgamma(x, shape = 2, rate = 4) + (1/2)*dgamma(x, shape = 2, rate = 1)
+
+
+MSE_h = function(h, model, density_f) {
+  # fonction qui calcule le MISE pour la fenêtre h
+  # h : la fenêtre
+  #model : l'échantillon sous forme de data.frame ou matrice. Une colonne représente une simulation
+  #density_f : la densité associé au model
+
+  
+  #Calcul de l'ISE pour une simulation, pour un modèle
+  implement_mse = function(model_i){
+    
+    interval = seq(min(model_i),max(model_i), length = 1000) #on subdivise l'intervalle [min(model), max(model)] en 1000 points
+    
+    fn_hat_val = density(x = model_i, bw = h, from = interval[1], to = interval[length(interval)], n = 1000)$y #On calcul les images des 1000 points de la subdivisions pour l'estimateur à noyaux
+    
+    f_val = density_f(interval) #on calcul les images des 1000 points pour la densité
+    Err = fn_hat_val - f_val #On calcule l'erreur 
+    
+    return(mean(Err**2)) #On retourne la moyenne des erreurs au carrés
+  }
+  
+  mean_h = apply(X = model, MARGIN = 2, FUN = implement_mse)
+  return(mean(mean_h))
+}
+
+# creation du vecteur de fenêtres h 
+h_values = seq(0.01,1,length = 250)
+
+# valeurs du MISE en fonction des fenetres h
+#h_val_model1 = data.frame(X = h_values, Y = sapply(FUN = MSE_h, X = h_values , i_model = 1))
+#h_val_model2 = data.frame(X = h_values, Y = sapply(FUN = MSE_h, X = h_values, i_model = 2))
+h_val_model3 = data.frame(X = h_values, Y = sapply(FUN = MSE_h, X = h_values, model = modeles3, density_f = density_f3))
+```
+
+Pour trouver le minimum de notre fonction, nous avons utilisé la fonction optimise (ou optimize) du package stats. Elle est la combinaison d'interpolation polynomiale et de méthode du nombre d'or pour la recherche d'extrema. 
+
+Valeur optimale pour h pour les trois modèles :
+
+
+```{r echo=FALSE}
+
+h_star = optimise(f = MSE_h, interval = c(0,1), model = modeles3, density_f = density_f3)$minimum
+print(paste("h* modèle3", ":" , h_star))
+
+```
+
+```{r echo=FALSE, fig.width= 12, fig.height=6}
+
+plot(y = h_val_model3$Y, x = h_val_model3$X, type = "l", main = "Étude du risque intégré quadratique pour le modèle 3" ,ylab = "MISE", xlab = "h")
+abline(v = h_star, col = "red")
+
+```
+
+La première chose que l'on remarque est qu'avec une fenêtre trop faible, l'erreur est aussi grande qu'avec une fenêtre trop grosse. Cela est dû à la forme de la densité. Plus la fenêtre est basse, plus elle explose au voisinage de zéro et plus elle est grande, plus celle-ci s'aplatit.
+
+comparons là avec le critère ucv : 
+  
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width= 10}
+
+bw_ucv = round(bw.ucv(x = modeles$modele3$X),3)
+bw_nrd0 = round(bw.nrd0(x = modeles$modele3$X), 3)
+bw_star = round(h_star, 3)
+
+ggplot(data = modeles$modele3) + 
+  aes(x = X, y = ..density..) + 
+  geom_histogram(bins = 25, alpha = 0.1, fill = "#b6c90c", color = "black") +
+  geom_function(aes(colour = "densité f"), fun = Xi[[3]]$density , inherit.aes = F, size = 0.8) + #equivalement du curve
+  geom_density(aes(colour = paste("(ucv) bw = ", bw_ucv)), bw = "ucv", size = 0.8, linetype = "dotdash") + #equivalent de la fonction density, mais trace uniquement la courbe
+  geom_density(aes(colour = paste("h* ≈", bw_star)), bw = bw_star, size = 0.8, linetype = "twodash") +
+  theme_hc(base_size = 10) + 
+  theme(legend.position = "left", legend.title = element_blank())
+```
+
+On se rend rapidement compte que le choix de la fenêtre par validation croisé, bien que pratique n'est pas forcément le plus optimal. 
+
+# Partie 3
+
+Illustrez la méthodologie  (noyau + choix de la fenêtre par validation croisée) sur un jeu de donnée réelles (par ex base de donnée  UCI - machine learning) en expliquant la nature de votre variable
+
+<center>---------------------------------------------------------------------</center>
+
+```{r include=FALSE}
+
+path = dirname(rstudioapi::getSourceEditorContext()$path)
+file_name = list.files(path = path, pattern = "csv", recursive = T, full.names = T)
+hour_df_name = file_name[stringr::str_detect(file_name, "hour")]
+day_df_name = file_name[stringr::str_detect(file_name, "day")]
+  
+hour_df = data.table::fread(hour_df_name, encoding = "UTF-8", colClasses = list(Date = c(2)))
+day_df  = data.table::fread(day_df_name, encoding = "UTF-8", colClasses = list(Date = c(2)))
+
+windspeed = hour_df$windspeed
+```
+
+On a choisi de travailler sur le jeu de données "Bike-Sharing" provennant du site UCI Machine Learning Repository. Dans celui-ci, il y avait 2 jeux de données l'un "hour_df" composé de 17 variables et 17 379 observations et l'autre "day_df" composé de 16 variables et 731 observations.
+
+Notre base de données enregistre le nombre de vélos loués par Capital Bikeshare (une entreprise de partage de vélo basée aux USA) joint à des données météorologiques (ex : humidité, vitesse du vent).
+On a décidé de travailler sur la variable "windspeed" (vitesse du vent) avec la table hour_df.
+
+Pour les saisons : (1=springer, 2=summer, 3=fall, 4=winter).
+
+Windspeed est une variable quantitative continue. 
+Regardons brièvement les corrélations liées à la variable windpseed. En sélectionnant uniquement celles dont la corrélation linéaire est supérieure à 0.4 en valeur absolue, nous ne retenons aucune variable. On a donc une variable, peu voire pas corrélée aux autres.
+
+```{r}
+cor_wind = as.data.frame(cor(hour_df %>% select(where(is.numeric)))[,13])
+names(cor_wind) = "windspeed"
+cor_wind$flag = ifelse(abs(cor_wind$windspeed) > 0.4, 1, 0)
+print(cor_wind %>% filter(flag == 1) %>% select(windspeed))
+```
+
+Bien sûr, si l'on veut entrer dans les détails, on peut effectuer également un test d'ANOVA entre les variables qualitatives et windspeed. 
+
+De plus, la variable windspeed a été normalisée dans le jeu de données. Pour avoir les vitesses réelles, il faut multiplier nos valeurs par 67.
+
+```{r}
+summary(windspeed*67)
+```
+
+Nous avons une médiane proche de la moyenne, et donc la vitesse maximum peut atteindre 56 miles/h (ou km/h, ce n'est pas spécifié)
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+bw_ucv = round(bw.ucv(hour_df$windspeed),3)
+
+fig11 = ggplot(data = hour_df) + 
+  aes(x = windspeed, y = ..density..) + 
+  geom_histogram(bins = 25, alpha = 0.1, fill = "#b6c90c", color = "black") +
+  geom_density(aes(colour = paste("(ucv) bw = ", bw_ucv, ", kernel = gaussian")), bw = "ucv", size = 0.8) + 
+  #geom_density(aes(colour = "bw = 1"),bw = 1, size = 0.8 ) + 
+  theme_hc(base_size = 10) + 
+  theme(legend.position = "right", legend.title = element_blank())
+
+fig12 = ggplot(data = hour_df) + 
+  aes(x = windspeed, y = ..density..) + 
+  geom_histogram(bins = 25, alpha = 0.1, fill = "#b6c90c", color = "black") +
+  geom_density(aes(colour = paste("(ucv) bw = ", bw_ucv, ", kernel = Epanechnikov")), bw = "ucv", size = 0.8, kernel = "e") + 
+  #geom_density(aes(colour = "bw = 1"),bw = 1, size = 0.8 ) + 
+  theme_hc(base_size = 10) + 
+  theme(legend.position = "right", legend.title = element_blank())
+
+fig13 = ggplot(data = hour_df) + 
+  aes(x = windspeed, y = ..density..) + 
+  geom_histogram(bins = 25, alpha = 0.1, fill = "#b6c90c", color = "black") +
+  geom_density(aes(colour = paste("(ucv) bw = ", bw_ucv, "kernel = uniforme")), bw = "ucv", size = 0.8, kernel = "r") + 
+  #geom_density(aes(colour = "bw = 1"),bw = 1, size = 0.8 ) + 
+  theme_hc(base_size = 10) + 
+  theme(legend.position = "right", legend.title = element_blank())
+
+fig14= ggplot(data = hour_df) + 
+  aes(x = windspeed, y = ..density..) + 
+  geom_histogram(bins = 25, alpha = 0.1, fill = "#b6c90c", color = "black") +
+  geom_density(aes(colour = paste("(ucv) bw = ", bw_ucv, "kernel = triangulaire")), bw = "ucv", size = 0.8, kernel = "t") + 
+  #geom_density(aes(colour = "bw = 1"),bw = 1, size = 0.8 ) + 
+  theme_hc(base_size = 10) + 
+  theme(legend.position = "right", legend.title = element_blank())
+
+fig2 = ggplot(data = hour_df) + 
+  aes(x = windspeed, y = ..density..) + 
+  geom_histogram(bins = 25, alpha = 0.1, fill = "#b6c90c", color = "black") +
+  geom_density(aes(colour = "bw = 0.5"), bw = 0.5, size = 0.8) + 
+  #geom_density(aes(colour = "bw = 1"),bw = 1, size = 0.8 ) + 
+  theme_hc(base_size = 10) + 
+  theme(legend.position = "bottom", legend.title = element_blank())
+
+fig3 = ggplot(data = hour_df) + 
+  aes(x = windspeed, y = ..density..) + 
+  geom_histogram(bins = 25, alpha = 0.1, fill = "#b6c90c", color = "black") +
+  geom_density(aes(colour = paste("(nrd0) bw =", round(bw.nrd0(hour_df$windspeed),3))), size = 0.8) + 
+  #geom_density(aes(colour = "bw = 1"),bw = 1, size = 0.8 ) + 
+  theme_hc(base_size = 10) + 
+  theme(legend.position = "bottom", legend.title = element_blank())
+```
+
+Regardons l'histogramme ainsi qu'un estimateur à noyaux avec la fenêtre par validation croisée. On obtient le graphique suivant : 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot(fig11)
+```
+
+Avec un noyau dfférent, on obtient un résultat similaire.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot(fig12)
+```
+
+Cependant, on a du mal à savoir si l'estimateur rend réellement compte de la distribution de nos variables. 
+
+avec h = nrd0 et h = 0.5, on obtient : 
+
+```{r}
+plot_grid(fig3, fig2)
+```
+
+Le critère nrd0 semble être le plus favorable, il se rapproche le plus de nos observations. En revanche, et avec du recul, il faut tout de même envisager la possibilité que ce ne soit pas la bonne fenêtre, car l'estimation est trop collée à nos observations. 
+
+# Partie 4 (Bonus) 
+Ecrire une fonction R qui donne l'estimateur de noyau avec choix de fenêtre par validation croisée
+
+<center>---------------------------------------------------------------------</center>
+
+```{r}
+
+J = function(h, Y) {
+  #Calcul de l'integrale de fn_hat**2 entre min(Y) et max(Y)
+  area_fn_hat_sq = mean(density(x = Y, from = min(Y), to = max(Y), bw = h, n = 1000)$y**2)*(max(Y) - min(Y))
+  
+  #Boucle pour calcul
+  fn_hat_cross_val = 0
+  for(i in 1:length(Y)){
+    fn_hat_Xi = density(Y[-i], bw = h, from = Y[i], to = Y[i], n = 1)$y
+    fn_hat_cross_val = fn_hat_Xi + fn_hat_cross_val
+  }
+  
+  result = area_fn_hat_sq - (2/length(Y)) * fn_hat_cross_val
+}
+
+
+```
+
+Comparons notre fonction avec celle du package stats (bw.ucv). Pour cela nous allons utiliser la variable windspeed du dataframe day_df. Celle-ci contient moins d'observation, ce qui sera un peu plus rapide pour les calculs. 
+
+```{r echo=TRUE}
+h_hat_J = optimize(f = J, interval = c(0,1), Y = day_df$windspeed)$minimum
+h_hat_density = bw.ucv(day_df$windspeed)
+
+cat(paste("h_hat avec la fonction J : ", h_hat_J, "\nh_hat avec la fonction density : ", h_hat_density))
+```
+
+
+
+  
