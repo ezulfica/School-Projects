@@ -1,6 +1,6 @@
 plot_nonogram = function(X, r_clues = r_clues, c_clues = c_clues){
   
-  #The plot function has been inspired by coolbutuseless : 
+  #The plot function is inspired by coolbutuseless : 
   #https://github.com/coolbutuseless/nonogram/blob/master/R/plot.R
   
   nrows = length(r_clues)
