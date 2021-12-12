@@ -3,6 +3,8 @@
 # For each list function : 
 #1 : we compute the require numbers of black cell and then add them randomly in the grid
 #2 : we compute the required segment in order for each row and then move randomly each point by column
+#the delta parameters is needed when solving. It's the difference of errors between the initial state and the new state for SA
+#Since we haven't done any permutation yet, delta is null
 
 generate_initial_state = list(
   
