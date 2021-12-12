@@ -1,10 +1,8 @@
 # Generate an initial result for solving the nonogram
-# The only parameters needed is the nonogram clues. 
-# For each list : 
+# The only parameters needed are the nonogram clues. 
+# For each list function : 
 #1 : we compute the require numbers of black cell and then add them randomly in the grid
 #2 : we compute the required segment in order for each row and then move randomly each point by column
-#3 : we looks for the intersection of every combinaison and then add randomly the missing numbers of required black cell
-#the third option is not the best solution for high dimension, it takes times to generate everything
 
 generate_initial_state = list(
   
