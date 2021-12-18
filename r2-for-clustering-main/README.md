@@ -10,7 +10,7 @@ The main goal was to classify every cities and create cluster with
 k-means and hierarchical clustering algorithms. To help us with deciding
 how many clusters are optimal, we used *R*<sup>2</sup> criteria which is :
 
-$$ R^2 = \frac{BSS}{TSS} $$
+$ R^2 = \frac{BSS}{TSS} $
 
 
 where BSS defines the between sum square and TSS the total sum square.
